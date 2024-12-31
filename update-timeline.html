@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Update Timeline Data</title>
+  <link rel="stylesheet" href="update-timeline.css" />
+</head>
+<body>
+  <header>
+    <h1>Update Timeline Data</h1>
+  </header>
+
+  <main>
+    <div class="info">
+      <p>
+        This page lets you update the <strong>timelineData</strong> JSON. Edits are done 
+        in real-time. Click <em>Save / Export</em> to see your updated JSON and copy it if needed.
+      </p>
+    </div>
+
+    <!-- Container where our JS will render the forms -->
+    <div id="timelineContainer"></div>
+
+    <!-- Button to open the modal with exported JSON -->
+    <div class="actions">
+      <button id="saveChangesBtn">Save / Export</button>
+    </div>
+  </main>
+
+  <!-- Modal Overlay for showing JSON -->
+  <div id="jsonModal" class="json-modal-overlay">
+    <div class="json-modal">
+      <button id="closeJsonModalBtn" class="close-json-modal">&times;</button>
+      <h2>Exported JSON</h2>
+      <textarea id="exportedJson" readonly></textarea>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2024 Your Company. All rights reserved.</p>
+  </footer>
+
+  <!-- Include your original timelineData.js file -->
+  <script src="timelineData.js"></script>
+
+  <!-- Script that dynamically renders and updates the timeline data -->
+  <script src="update-timeline.js"></script>
+</body>
+</html>
