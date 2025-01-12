@@ -11,7 +11,7 @@ const projects = [
       "envs": {
         "mock": {
           "mobile": {
-            "link": "Android: https://play.google.com/apps/internaltest/4701122055645703621, iOS: no link",
+            "link": "<br/>Web: <a href='https://saawtcloud.net/'>Web App</a> <br/>Android: <a href='https://play.google.com/apps/internaltest/4701122055645703621'>Download here</a> <br/>iOS: <a>Request access</a>",
             "username": "haolivium@gmail.com",
             "password": "P@ssw0rd768"
           },
