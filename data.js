@@ -107,7 +107,7 @@ const projects = [
       "name": "Thakii",
       "description": "Learning management mobile app",
       "progress": {
-        "MVP1": 10,
+        "MVP1": 100,
         "MVP2": 0
       },
       "howToTest": "Download the application then try to upload a video or a youtube URL. The video or the youtube URL has to be converted to a PDF file",
