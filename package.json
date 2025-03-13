@@ -1,0 +1,16 @@
+{
+  "name": "fanus-digital-qa",
+  "version": "1.0.0",
+  "description": "Fanus Digital QA Dashboard with Netlify Functions",
+  "main": "index.html",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "# No build step needed for now"
+  },
+  "dependencies": {
+    "@netlify/functions": "^2.0.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+} 

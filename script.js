@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     const projectContainer = document.getElementById("projectContainer");
     const modalOverlay = document.getElementById("modalOverlay");
     const modalContent = document.getElementById("modalContent");
@@ -33,6 +33,25 @@ document.addEventListener("DOMContentLoaded", () => {
         closeModal();
       }
     });
+  
+    // Fetch projects data from API
+    let projects = [];
+    try {
+      const response = await fetch('/api/get-projects');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      projects = await response.json();
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      // Fallback to local data if API fails
+      console.log('Falling back to local data');
+    }
+    
+    // If API failed and we have the local data variable, use it
+    if (projects.length === 0 && typeof window.projects !== 'undefined') {
+      projects = window.projects;
+    }
   
     projects.forEach(projectObj => {
       // Each element in 'projects' is an object with a single key (e.g. 'saawt', 'SeenWaGeem', etc.)

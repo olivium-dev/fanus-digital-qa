@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     const timelineContainer = document.getElementById("timelineContainer");
     const saveChangesBtn = document.getElementById("saveChangesBtn");
   
@@ -6,6 +6,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const jsonModal = document.getElementById("jsonModal");
     const closeJsonModalBtn = document.getElementById("closeJsonModalBtn");
     const exportedJson = document.getElementById("exportedJson");
+    
+    // Fetch timeline data from API
+    let timelineData = [];
+    try {
+      const response = await fetch('/api/get-timeline');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      timelineData = await response.json();
+    } catch (error) {
+      console.error('Error fetching timeline data:', error);
+      // Fallback to local data if API fails
+      console.log('Falling back to local data');
+      if (typeof window.timelineData !== 'undefined') {
+        timelineData = window.timelineData;
+      }
+    }
   
     // A helper function to render each block in a "card"
     function renderBlock(blockIndex, blockData) {
@@ -186,6 +203,31 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initial render
     renderAllBlocks();
   
+    // Save changes to the server
+    async function saveChangesToServer() {
+      try {
+        const response = await fetch('/api/update-timeline', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(timelineData)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        alert('Timeline data saved successfully!');
+        return result;
+      } catch (error) {
+        console.error('Error saving timeline data:', error);
+        alert('Failed to save timeline data. See console for details.');
+        return null;
+      }
+    }
+  
     // Show modal with updated JSON
     function showExportedJson() {
       // Convert the updated timelineData to a formatted JSON string
@@ -198,8 +240,9 @@ document.addEventListener("DOMContentLoaded", () => {
       jsonModal.classList.add("active");
     }
   
-    // Save/Export button: open the modal with exported JSON
-    saveChangesBtn.addEventListener("click", () => {
+    // Save/Export button: save to server and open the modal with exported JSON
+    saveChangesBtn.addEventListener("click", async () => {
+      await saveChangesToServer();
       showExportedJson();
     });
   
