@@ -8,7 +8,7 @@
     "build": "# No build step needed for now"
   },
   "dependencies": {
-    "@netlify/functions": "^2.0.0",
+    "@netlify/functions": "^2.8.2",
     "axios": "^1.8.3"
   },
   "devDependencies": {

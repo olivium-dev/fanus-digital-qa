@@ -1,6 +1,7 @@
 // Import required modules
 const fs = require('fs');
 const path = require('path');
+const { NetlifyFunction } = require('@netlify/functions');
 
 // Default projects data
 const defaultProjects = [
@@ -138,17 +139,40 @@ if (!global.projectsData) {
   global.projectsData = defaultProjects;
 }
 
-exports.handler = async function(event, context) {
+// Create a handler that uses Netlify's KV store
+const handler = async (event, context) => {
   try {
     let projects = global.projectsData || defaultProjects;
     
-    // Try to read from the saved file
+    // Try to get data from KV store first
+    try {
+      const storedProjects = await context.store.get('projects');
+      if (storedProjects) {
+        console.log('Projects data loaded from KV store');
+        projects = storedProjects;
+        
+        // Update the global variable
+        global.projectsData = projects;
+        return {
+          statusCode: 200,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(projects)
+        };
+      }
+    } catch (storeError) {
+      console.error('Error reading projects data from KV store:', storeError);
+      // Continue with fallback options
+    }
+    
+    // Fallback: Try to read from the saved file
     try {
       const dataPath = path.join('/tmp', 'data', 'projects.json');
       if (fs.existsSync(dataPath)) {
         const fileData = fs.readFileSync(dataPath, 'utf8');
         projects = JSON.parse(fileData);
-        console.log('Projects data loaded from file');
+        console.log('Projects data loaded from file (fallback)');
         
         // Update the global variable
         global.projectsData = projects;
@@ -172,4 +196,7 @@ exports.handler = async function(event, context) {
       body: JSON.stringify({ error: 'Failed to fetch projects data', details: error.message })
     };
   }
-}; 
+};
+
+// Export the handler wrapped with Netlify Function
+exports.handler = NetlifyFunction(handler); 
