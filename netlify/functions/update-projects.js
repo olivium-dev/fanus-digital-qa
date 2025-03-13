@@ -1,7 +1,7 @@
-const { NetlifyFunction } = require('@netlify/functions');
+const fs = require('fs');
+const path = require('path');
 
-// Create a handler that uses Netlify's KV store
-const handler = async (event, context) => {
+exports.handler = async function(event, context) {
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
@@ -29,33 +29,22 @@ const handler = async (event, context) => {
     // Log the data for debugging
     console.log('Received projects data update request');
     
-    // Store the data in Netlify's KV store
+    // Store the data in a JSON file in the data directory
     try {
-      // Save to KV store
-      await context.store.set('projects', projects);
-      console.log('Data saved to KV store');
-    } catch (storeError) {
-      console.error('Error saving data to KV store:', storeError);
-      // Continue execution even if KV store saving fails
-      
-      // Fallback to file storage
-      try {
-        // Create a data directory if it doesn't exist
-        const fs = require('fs');
-        const path = require('path');
-        const dataDir = path.join('/tmp', 'data');
-        if (!fs.existsSync(dataDir)) {
-          fs.mkdirSync(dataDir, { recursive: true });
-        }
-        
-        // Write the data to a JSON file
-        const dataPath = path.join(dataDir, 'projects.json');
-        fs.writeFileSync(dataPath, JSON.stringify(projects, null, 2));
-        
-        console.log(`Data saved to ${dataPath} as fallback`);
-      } catch (fsError) {
-        console.error('Error saving data to file as fallback:', fsError);
+      // Create a data directory if it doesn't exist
+      const dataDir = path.join('/tmp', 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
       }
+      
+      // Write the data to a JSON file
+      const dataPath = path.join(dataDir, 'projects.json');
+      fs.writeFileSync(dataPath, JSON.stringify(projects, null, 2));
+      
+      console.log(`Data saved to ${dataPath}`);
+    } catch (fsError) {
+      console.error('Error saving data to file:', fsError);
+      // Continue execution even if file saving fails
     }
     
     return {
@@ -76,7 +65,4 @@ const handler = async (event, context) => {
       body: JSON.stringify({ error: 'Failed to update projects data', details: error.message })
     };
   }
-};
-
-// Export the handler wrapped with Netlify Function
-exports.handler = NetlifyFunction(handler); 
+}; 
