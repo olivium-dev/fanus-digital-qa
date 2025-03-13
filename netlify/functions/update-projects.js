@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 
 exports.handler = async function(event, context) {
   // Only allow POST requests
@@ -22,13 +23,30 @@ exports.handler = async function(event, context) {
       };
     }
     
-    // In a real application, we would write to the file here
-    // For testing purposes, we'll just return a success message
-    console.log('Received projects data update request');
-    
     // Update the projects data in memory for the get-projects function
     // This is a simplified approach for testing
     global.projectsData = projects;
+    
+    // Log the data for debugging
+    console.log('Received projects data update request');
+    
+    // Store the data in a JSON file in the data directory
+    try {
+      // Create a data directory if it doesn't exist
+      const dataDir = path.join('/tmp', 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      
+      // Write the data to a JSON file
+      const dataPath = path.join(dataDir, 'projects.json');
+      fs.writeFileSync(dataPath, JSON.stringify(projects, null, 2));
+      
+      console.log(`Data saved to ${dataPath}`);
+    } catch (fsError) {
+      console.error('Error saving data to file:', fsError);
+      // Continue execution even if file saving fails
+    }
     
     return {
       statusCode: 200,
@@ -42,6 +60,7 @@ exports.handler = async function(event, context) {
       })
     };
   } catch (error) {
+    console.error('Error updating projects data:', error);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'Failed to update projects data', details: error.message })

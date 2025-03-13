@@ -140,8 +140,23 @@ if (!global.projectsData) {
 
 exports.handler = async function(event, context) {
   try {
-    // Use the global projects data if available, otherwise use the default
-    const projects = global.projectsData || defaultProjects;
+    let projects = global.projectsData || defaultProjects;
+    
+    // Try to read from the saved file
+    try {
+      const dataPath = path.join('/tmp', 'data', 'projects.json');
+      if (fs.existsSync(dataPath)) {
+        const fileData = fs.readFileSync(dataPath, 'utf8');
+        projects = JSON.parse(fileData);
+        console.log('Projects data loaded from file');
+        
+        // Update the global variable
+        global.projectsData = projects;
+      }
+    } catch (fsError) {
+      console.error('Error reading projects data from file:', fsError);
+      // Continue with the global or default data
+    }
     
     return {
       statusCode: 200,
@@ -151,6 +166,7 @@ exports.handler = async function(event, context) {
       body: JSON.stringify(projects)
     };
   } catch (error) {
+    console.error('Error fetching projects data:', error);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'Failed to fetch projects data', details: error.message })

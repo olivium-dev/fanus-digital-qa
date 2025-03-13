@@ -24,11 +24,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      projects = await response.json();
+      const data = await response.json();
+      
+      // Check if the response is valid
+      if (!Array.isArray(data)) {
+        console.error('Invalid data format received:', data);
+        throw new Error('Invalid data format received from API');
+      }
+      
+      projects = data;
       renderProjectsList();
     } catch (error) {
       console.error('Error fetching projects:', error);
-      alert('Failed to load projects. Please try again later.');
+      alert('Failed to load projects. Please try again later. Error: ' + error.message);
     }
   }
 
@@ -329,8 +337,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error || 'Unknown error'}`);
       }
+      
+      const result = await response.json();
+      console.log('Save result:', result);
       
       // Update the UI
       renderProjectsList();
@@ -340,7 +352,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       
     } catch (error) {
       console.error('Error saving project:', error);
-      alert('Failed to save project. Please try again.');
+      alert('Failed to save project. Please try again. Error: ' + error.message);
       
       // Fallback: If API fails, at least update the UI
       renderProjectsList();
@@ -363,8 +375,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error || 'Unknown error'}`);
       }
+      
+      const result = await response.json();
+      console.log('Delete result:', result);
       
       // Update the UI
       currentProjectKey = null;
@@ -378,7 +394,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       
     } catch (error) {
       console.error('Error deleting project:', error);
-      alert('Failed to delete project. Please try again.');
+      alert('Failed to delete project. Please try again. Error: ' + error.message);
       
       // Fallback: If API fails, at least update the UI
       renderProjectsList();
