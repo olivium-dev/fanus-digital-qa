@@ -27,6 +27,12 @@ const projects = [
             "link": "Android: https://play.google.com/apps/internaltest/4700407469738696848, iOS: Needs Testflight invite",
             "username": "haolivium@gmail.com",
             "password": "P@ssw0rd768"
+        },
+        "Prod": {
+            "mobile": {
+              "link": "Android: https://play.google.com/store/apps/details?id=com.saawt.app, iOS: Needs Testflight invite",
+              "username": "haolivium@gmail.com",
+              "password": "P@ssw0rd768"
           },
           // This 'web' key is optional — your code doesn't currently use it, 
           // but you can keep it if you want to display or handle web separately:
@@ -55,11 +61,11 @@ const projects = [
         "MVP1": 100,
         "MVP2": 100
       },
-      "howToTest": "----needed----",
+      "howToTest": "Open the application and try all the application",
       "envs": {
         "Production": {
           "mobile": {
-            "link": "<br/>Android: <a href='https://play.google.com/store/apps/details?id=com.seenwageem&hl=nl'>Download here</a>, <br/>iOS: <a href='https://apps.apple.com/py/app/seenwageem/id6473081020?l=en-GB'>Download here</a>",
+            "link": "<br/>Android: <a href='https://play.google.com/store/apps/details?id=com.seenwageem'>Download here</a>, <br/>iOS: <a href='https://apps.apple.com/py/app/seenwageem/id6473081020?l=en-GB'>Download here</a>",
             "username": "<i>Your email</i>",
             "password": "<i>Your password</i>"
           },
