@@ -1,7 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const multiparty = require('multiparty');
-const util = require('util');
 
 exports.handler = async function(event, context) {
   // Only allow POST requests
@@ -13,27 +11,19 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    // Parse the multipart form data
-    const form = new multiparty.Form();
-    const parseForm = util.promisify(form.parse).bind(form);
-    
-    const { fields, files } = await parseForm(event);
-    
-    if (!files || !files.file || !files.file[0]) {
+    // Check if we have a JSON body
+    if (!event.body) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'No file provided' })
+        body: JSON.stringify({ error: 'No data provided' })
       };
     }
     
-    const uploadedFile = files.file[0];
+    let projectsData;
     
-    // Read the file content
-    const fileContent = fs.readFileSync(uploadedFile.path, 'utf8');
-    
-    // Validate the JSON
+    // Try to parse the body as JSON
     try {
-      JSON.parse(fileContent);
+      projectsData = JSON.parse(event.body);
     } catch (jsonError) {
       return {
         statusCode: 400,
@@ -41,13 +31,24 @@ exports.handler = async function(event, context) {
       };
     }
     
+    // Validate that it's an array
+    if (!Array.isArray(projectsData)) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Invalid data format. Expected an array.' })
+      };
+    }
+    
     // Determine the target path for data.json
     const dataJsonPath = path.join(process.cwd(), 'data.json');
     
-    // Write the file to the data.json in the site root
-    fs.writeFileSync(dataJsonPath, fileContent);
+    // Write the data to the data.json file
+    fs.writeFileSync(dataJsonPath, JSON.stringify(projectsData, null, 2));
     
     console.log(`Data file updated at ${dataJsonPath}`);
+    
+    // Update the global variable
+    global.projectsData = projectsData;
     
     return {
       statusCode: 200,

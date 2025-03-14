@@ -346,26 +346,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       // Direct update to data.json as a fallback
       try {
-        // Create a Blob with the JSON data
-        const blob = new Blob([JSON.stringify(projects, null, 2)], { type: 'application/json' });
-        
-        // Create a FormData object
-        const formData = new FormData();
-        formData.append('file', blob, 'data.json');
-        
-        // Send the file to the server
-        const uploadResponse = await fetch('/update-data', {
+        // Send the data directly to the update-data endpoint
+        const updateResponse = await fetch('/update-data', {
           method: 'POST',
-          body: formData
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(projects)
         });
         
-        if (uploadResponse.ok) {
+        if (updateResponse.ok) {
           console.log('Data file updated directly');
         } else {
-          console.warn('Failed to update data file directly:', await uploadResponse.text());
+          console.warn('Failed to update data file directly:', await updateResponse.text());
         }
-      } catch (uploadError) {
-        console.error('Error updating data file directly:', uploadError);
+      } catch (updateError) {
+        console.error('Error updating data file directly:', updateError);
       }
       
       // Update the UI
