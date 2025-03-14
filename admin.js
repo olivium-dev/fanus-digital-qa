@@ -20,6 +20,77 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Fetch projects from API
   async function fetchProjects() {
     try {
+      // First try to get data from localStorage
+      const localData = localStorage.getItem('projects-data');
+      if (localData) {
+        try {
+          const parsedData = JSON.parse(localData);
+          if (Array.isArray(parsedData)) {
+            console.log('Projects data loaded from localStorage');
+            projects = parsedData;
+            renderProjectsList();
+            return;
+          }
+        } catch (parseError) {
+          console.error('Error parsing localStorage data:', parseError);
+          // Continue with API fetch
+        }
+      }
+      
+      // Try to use the data bridge to get data from other browser windows/tabs
+      try {
+        // Create a promise that will resolve when we get data from the bridge
+        const bridgePromise = new Promise((resolve, reject) => {
+          // Set a timeout to reject the promise after 3 seconds
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Data bridge timeout'));
+          }, 3000);
+          
+          // Listen for messages from the bridge
+          const messageHandler = (event) => {
+            if (event.data && event.data.type === 'PROJECTS_DATA') {
+              clearTimeout(timeoutId);
+              window.removeEventListener('message', messageHandler);
+              resolve(event.data.data);
+            }
+          };
+          
+          window.addEventListener('message', messageHandler);
+          
+          // Open the data bridge in a hidden iframe
+          const bridgeFrame = document.createElement('iframe');
+          bridgeFrame.style.display = 'none';
+          bridgeFrame.src = 'data-bridge.html';
+          document.body.appendChild(bridgeFrame);
+          
+          // Wait for the iframe to load
+          bridgeFrame.onload = () => {
+            // Send a request to get the data
+            bridgeFrame.contentWindow.postMessage({
+              type: 'GET_PROJECTS'
+            }, '*');
+          };
+          
+          // Clean up the iframe when done
+          setTimeout(() => {
+            document.body.removeChild(bridgeFrame);
+          }, 3000);
+        });
+        
+        // Wait for the bridge to respond
+        const bridgeData = await bridgePromise;
+        if (bridgeData && Array.isArray(bridgeData)) {
+          console.log('Projects data loaded from data bridge');
+          projects = bridgeData;
+          renderProjectsList();
+          return;
+        }
+      } catch (bridgeError) {
+        console.error('Error using data bridge:', bridgeError);
+        // Continue with API fetch
+      }
+      
+      // If no localStorage or bridge data, fetch from API
       const response = await fetch('/api/get-projects');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -31,6 +102,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Invalid data format received:', data);
         throw new Error('Invalid data format received from API');
       }
+      
+      // Save the data to localStorage for future use
+      localStorage.setItem('projects-data', JSON.stringify(data));
       
       projects = data;
       renderProjectsList();
@@ -327,6 +401,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         projects.push(projectData);
       }
       
+      // Save to localStorage first for immediate access
+      localStorage.setItem('projects-data', JSON.stringify(projects));
+      
       // Save to API
       const response = await fetch('/api/update-projects', {
         method: 'POST',
@@ -344,24 +421,33 @@ document.addEventListener('DOMContentLoaded', async () => {
       const result = await response.json();
       console.log('Save result:', result);
       
-      // Direct update to data.json as a fallback
+      // Also save using the data bridge
       try {
-        // Send the data directly to the update-data endpoint
-        const updateResponse = await fetch('/update-data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(projects)
-        });
+        // Open the data bridge in a new window
+        const bridgeWindow = window.open('data-bridge.html', 'dataBridge', 'width=500,height=400');
         
-        if (updateResponse.ok) {
-          console.log('Data file updated directly');
-        } else {
-          console.warn('Failed to update data file directly:', await updateResponse.text());
-        }
-      } catch (updateError) {
-        console.error('Error updating data file directly:', updateError);
+        // Wait for the window to load
+        setTimeout(() => {
+          if (bridgeWindow) {
+            // Send the data to the window
+            bridgeWindow.postMessage({
+              type: 'UPDATE_PROJECTS',
+              data: projects
+            }, '*');
+          }
+        }, 1000);
+        
+        // Listen for messages from the window
+        window.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'UPDATE_COMPLETE') {
+            console.log('Data update complete:', event.data.success);
+            if (bridgeWindow) {
+              bridgeWindow.close();
+            }
+          }
+        });
+      } catch (bridgeError) {
+        console.error('Error with data bridge:', bridgeError);
       }
       
       // Update the UI

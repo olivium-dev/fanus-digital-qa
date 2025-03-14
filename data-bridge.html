@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Bridge</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .loading {
+      background-color: #cce5ff;
+      color: #004085;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Data Bridge</h1>
+    <p>This page helps transfer data between your browser and the server.</p>
+    <div id="status" class="status loading">Loading...</div>
+  </div>
+
+  <script>
+    // Function to update the status display
+    function updateStatus(message, type) {
+      const statusElement = document.getElementById('status');
+      statusElement.textContent = message;
+      statusElement.className = `status ${type}`;
+    }
+
+    // Function to save data to localStorage
+    function saveToLocalStorage(data) {
+      try {
+        localStorage.setItem('projects-data', JSON.stringify(data));
+        updateStatus('Data saved to localStorage successfully!', 'success');
+        return true;
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+        updateStatus(`Error saving to localStorage: ${error.message}`, 'error');
+        return false;
+      }
+    }
+
+    // Function to load data from localStorage
+    function loadFromLocalStorage() {
+      try {
+        const data = localStorage.getItem('projects-data');
+        if (data) {
+          updateStatus('Data loaded from localStorage successfully!', 'success');
+          return JSON.parse(data);
+        } else {
+          updateStatus('No data found in localStorage.', 'error');
+          return null;
+        }
+      } catch (error) {
+        console.error('Error loading from localStorage:', error);
+        updateStatus(`Error loading from localStorage: ${error.message}`, 'error');
+        return null;
+      }
+    }
+
+    // Listen for messages from the parent window
+    window.addEventListener('message', (event) => {
+      console.log('Message received:', event.data);
+      
+      if (event.data && event.data.type === 'UPDATE_PROJECTS') {
+        // Save the data to localStorage
+        const success = saveToLocalStorage(event.data.data);
+        
+        // Send a response back to the parent window
+        if (event.source) {
+          event.source.postMessage({
+            type: 'UPDATE_COMPLETE',
+            success: success
+          }, '*');
+        }
+      } else if (event.data && event.data.type === 'GET_PROJECTS') {
+        // Load the data from localStorage
+        const data = loadFromLocalStorage();
+        
+        // Send the data back to the parent window
+        if (event.source) {
+          event.source.postMessage({
+            type: 'PROJECTS_DATA',
+            data: data
+          }, '*');
+        }
+      }
+    });
+
+    // If this page is opened directly, show the current data
+    if (window.opener === null) {
+      const data = loadFromLocalStorage();
+      if (data) {
+        const pre = document.createElement('pre');
+        pre.textContent = JSON.stringify(data, null, 2);
+        document.querySelector('.container').appendChild(pre);
+      }
+    } else {
+      updateStatus('Connected to parent window. Waiting for commands...', 'loading');
+    }
+  </script>
+</body>
+</html> 

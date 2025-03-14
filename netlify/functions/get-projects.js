@@ -148,61 +148,77 @@ exports.handler = async function(event, context) {
     const isNetlifyProduction = process.env.NETLIFY && process.env.CONTEXT === 'production';
     console.log(`Environment: ${isNetlifyProduction ? 'Netlify Production' : 'Local/Development'}`);
     
-    // 1. Try to read from the public data file (in production)
-    if (isNetlifyProduction) {
+    // Check if this is a browser request with localStorage data
+    const headers = event.headers || {};
+    const userAgent = headers['user-agent'] || '';
+    const isLocalStorageRequest = headers['x-localstorage-data'] === 'true';
+    
+    if (isLocalStorageRequest) {
+      // Return a script that will retrieve data from localStorage and send it back
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'text/html',
+        },
+        body: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Loading Data</title>
+          </head>
+          <body>
+            <h1>Loading data...</h1>
+            <script>
+              // Get data from localStorage
+              const projectsData = localStorage.getItem('projects-data');
+              
+              // Send data back to the parent window
+              if (window.opener) {
+                window.opener.postMessage({ type: 'PROJECTS_DATA', data: projectsData }, '*');
+                document.body.innerHTML = '<h1>Data loaded!</h1><p>You can close this window.</p>';
+              } else {
+                document.body.innerHTML = '<h1>Data loaded!</h1><pre>' + (projectsData || 'No data found') + '</pre>';
+              }
+            </script>
+          </body>
+          </html>
+        `
+      };
+    }
+    
+    // 1. Try to read from the /tmp directory (works in both environments)
+    try {
+      const dataPath = path.join('/tmp', 'data', 'projects.json');
+      if (fs.existsSync(dataPath)) {
+        const fileData = fs.readFileSync(dataPath, 'utf8');
+        projects = JSON.parse(fileData);
+        console.log('Projects data loaded from tmp file');
+        dataSource = 'tmp file';
+        
+        // Update the global variable
+        global.projectsData = projects;
+      }
+    } catch (fsError) {
+      console.error('Error reading projects data from file:', fsError);
+      // Continue with other methods
+    }
+    
+    // 2. If in local development, try to read from the data.json file
+    if (dataSource === 'default' && !isNetlifyProduction) {
       try {
-        // Try to fetch the data.json file from the site's public URL
-        const siteUrl = process.env.URL || 'https://fanus-digital-qa.netlify.app';
-        const response = await axios.get(`${siteUrl}/data.json`);
-        if (response.status === 200 && response.data) {
-          projects = response.data;
-          console.log('Projects data loaded from public data file');
-          dataSource = 'public file';
+        const dataJsonPath = path.join(process.cwd(), 'data.json');
+        if (fs.existsSync(dataJsonPath)) {
+          const fileData = fs.readFileSync(dataJsonPath, 'utf8');
+          projects = JSON.parse(fileData);
+          console.log('Projects data loaded from data.json file');
+          dataSource = 'data.json';
           
           // Update the global variable
           global.projectsData = projects;
         }
-      } catch (publicFileError) {
-        console.error('Error reading from public data file:', publicFileError.message);
+      } catch (jsonError) {
+        console.error('Error reading from data.json:', jsonError);
         // Continue with other methods
-      }
-    }
-    
-    // 2. Try to read from the saved file in /tmp
-    if (dataSource === 'default') {
-      try {
-        const dataPath = path.join('/tmp', 'data', 'projects.json');
-        if (fs.existsSync(dataPath)) {
-          const fileData = fs.readFileSync(dataPath, 'utf8');
-          projects = JSON.parse(fileData);
-          console.log('Projects data loaded from tmp file');
-          dataSource = 'tmp file';
-          
-          // Update the global variable
-          global.projectsData = projects;
-        }
-      } catch (fsError) {
-        console.error('Error reading projects data from file:', fsError);
-        // Continue with the global or default data
-      }
-    }
-    
-    // 3. If in production, try to read from the public directory
-    if (isNetlifyProduction && dataSource === 'default') {
-      try {
-        const publicDataPath = path.join(process.env.NETLIFY_FUNCTION_DIR, '..', '..', 'data.json');
-        if (fs.existsSync(publicDataPath)) {
-          const fileData = fs.readFileSync(publicDataPath, 'utf8');
-          projects = JSON.parse(fileData);
-          console.log('Projects data loaded from public directory file');
-          dataSource = 'public directory';
-          
-          // Update the global variable
-          global.projectsData = projects;
-        }
-      } catch (publicFsError) {
-        console.error('Error reading from public directory file:', publicFsError);
-        // Continue with the global or default data
       }
     }
     
