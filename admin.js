@@ -344,6 +344,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       const result = await response.json();
       console.log('Save result:', result);
       
+      // Direct update to data.json as a fallback
+      try {
+        // Create a Blob with the JSON data
+        const blob = new Blob([JSON.stringify(projects, null, 2)], { type: 'application/json' });
+        
+        // Create a FormData object
+        const formData = new FormData();
+        formData.append('file', blob, 'data.json');
+        
+        // Send the file to the server
+        const uploadResponse = await fetch('/update-data', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (uploadResponse.ok) {
+          console.log('Data file updated directly');
+        } else {
+          console.warn('Failed to update data file directly:', await uploadResponse.text());
+        }
+      } catch (uploadError) {
+        console.error('Error updating data file directly:', uploadError);
+      }
+      
       // Update the UI
       renderProjectsList();
       

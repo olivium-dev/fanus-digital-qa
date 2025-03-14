@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 
 exports.handler = async function(event, context) {
   // Only allow POST requests
@@ -23,13 +24,19 @@ exports.handler = async function(event, context) {
     }
     
     // Update the projects data in memory for the get-projects function
-    // This is a simplified approach for testing
     global.projectsData = projects;
     
     // Log the data for debugging
     console.log('Received projects data update request');
     
-    // Store the data in a JSON file in the data directory
+    // Determine if we're in a Netlify production environment
+    const isNetlifyProduction = process.env.NETLIFY && process.env.CONTEXT === 'production';
+    console.log(`Environment: ${isNetlifyProduction ? 'Netlify Production' : 'Local/Development'}`);
+    
+    // Store the data using available methods
+    let storageSuccess = false;
+    
+    // 1. Try to use file system storage (works locally and sometimes in Netlify Functions)
     try {
       // Create a data directory if it doesn't exist
       const dataDir = path.join('/tmp', 'data');
@@ -42,9 +49,22 @@ exports.handler = async function(event, context) {
       fs.writeFileSync(dataPath, JSON.stringify(projects, null, 2));
       
       console.log(`Data saved to ${dataPath}`);
+      storageSuccess = true;
     } catch (fsError) {
       console.error('Error saving data to file:', fsError);
-      // Continue execution even if file saving fails
+    }
+    
+    // 2. If in Netlify production, try to save to a public JSON file in the site
+    if (isNetlifyProduction) {
+      try {
+        // Create a data.json file in the site's public directory
+        const publicDataPath = path.join(process.env.NETLIFY_FUNCTION_DIR, '..', '..', 'data.json');
+        fs.writeFileSync(publicDataPath, JSON.stringify(projects, null, 2));
+        console.log(`Data saved to public file: ${publicDataPath}`);
+        storageSuccess = true;
+      } catch (publicFsError) {
+        console.error('Error saving data to public file:', publicFsError);
+      }
     }
     
     return {
@@ -54,7 +74,7 @@ exports.handler = async function(event, context) {
       },
       body: JSON.stringify({ 
         success: true, 
-        message: 'Projects data update request received successfully',
+        message: `Projects data update request received successfully. Storage success: ${storageSuccess}`,
         timestamp: new Date().toISOString()
       })
     };
